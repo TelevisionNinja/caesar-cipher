@@ -58,7 +58,7 @@ def decrypt(cipher: str, n: int):
 
 def bruteForceAnyOccurrence(cipher: str, vocabulary: str):
     """
-    brute force by checking if any cipher vocab word appears *anywhere* in the cipher text
+    brute force by checking if any encrypted vocab word appears *anywhere* in the ciphertext
 
     *anywhere* meaning the word can be a substring of another larger word which may be unwanted
     """
@@ -68,12 +68,12 @@ def bruteForceAnyOccurrence(cipher: str, vocabulary: str):
     vocabularySet = set(vocabulary.lower().split())
 
     # loop through all the possible cipher keys
-    # it starts at zero bc the cipher text could already be the plaintext
+    # it starts at zero bc the ciphertext could already be the plaintext
     for n in range(alphabetSize):
         # make a set of cipher words out of the vocab
         encryptedVocabulary = [encrypt(vocabWord, n) for vocabWord in vocabularySet]
 
-        # check if any cipher vocab word appears *anywhere* in the cipher text
+        # check if any cipher vocab word appears *anywhere* in the ciphertext
         # *anywhere* meaning the word can be a substring of another larger word which may be unwanted
         for vocabWord in encryptedVocabulary:
             if cipher.find(vocabWord) != -1:
@@ -84,9 +84,9 @@ def bruteForceAnyOccurrence(cipher: str, vocabulary: str):
     return None
 
 
-def bruteForce(cipher: str, vocabulary: str):
+def bruteForceMatchingToCiphertext(cipher: str, vocabulary: str):
     """
-    brute force by matching cipher vocab words
+    brute force by matching encrypted vocab words to the ciphertext
 
     falls back on to matching any subtring occurrence of the cipher vocab words
     """
@@ -98,12 +98,12 @@ def bruteForce(cipher: str, vocabulary: str):
     words = [re.escape(word) for word in words]
 
     # loop through all the possible cipher keys
-    # it starts at zero bc the cipher text could already be the plaintext
+    # it starts at zero bc the ciphertext could already be the plaintext
     for n in range(alphabetSize):
         # escape regex special chars and ecrypt the words from the set
         encryptedVocabulary = [encrypt(vocabWord, n) for vocabWord in words]
 
-        # check if any cipher vocab word matches the cipher text
+        # check if any cipher vocab word matches the ciphertext
         for vocabWord in encryptedVocabulary:
             if re.search("(\\b" + vocabWord + "\\b)", cipher, re.IGNORECASE) is not None:
                 plaintext = decrypt(cipher, n)
@@ -111,3 +111,40 @@ def bruteForce(cipher: str, vocabulary: str):
 
     # look for any occurrence as a fallback
     return bruteForceAnyOccurrence(cipher, vocabulary)
+
+
+def bruteForce(cipher: str, vocabulary: str):
+    """
+    brute force by matching all cipher words to the vocab words
+
+    falls back on to matching any subtring occurrence of the cipher vocab words
+    """
+
+    cipherWords = cipher.split()
+
+    # make a set of words out of the vocab
+    # the case of the letters does not matter, but all letters are the same case to possibly reduce the set size
+    vocabWords = extractWordsRegex.findall(vocabulary)
+    vocabWords = set([word[0].lower() for word in vocabWords])
+    vocabWords = [re.escape(word) for word in vocabWords]
+
+    # loop through all the possible cipher keys
+    # it starts at zero bc the ciphertext could already be the plaintext
+    for n in range(alphabetSize):
+        # escape regex special chars and ecrypt the words from the set
+        encryptedVocabulary = set([encrypt(vocabWord, n) for vocabWord in vocabWords])
+
+        foundKey = True
+
+        # check if the cipher words are in the encrypted vocab words
+        for cipherWord in cipherWords:
+            if not cipherWord in encryptedVocabulary:
+                foundKey = False
+                break
+
+        if foundKey:
+            plaintext = decrypt(cipher, n)
+            return plaintext, n
+
+    # look for encrypted vocab words in the ciphertext as a fallback
+    return bruteForceMatchingToCiphertext(cipher, vocabulary)
